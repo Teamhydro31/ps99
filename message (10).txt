@@ -1,0 +1,304 @@
+-- Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Pets = require(ReplicatedStorage.Library.Directory.Pets)
+
+-- Configuration
+local realLoadingTime = 22      -- total loading duration
+local countdownStart = 15       -- starting countdown
+local countdownInterval = realLoadingTime / countdownStart
+
+-- Function to build and show your main GUI
+local function showMainGUI()
+    -- Create ScreenGui
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "PetChangerGUI"
+    ScreenGui.Parent = game:GetService("CoreGui")
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.ResetOnSpawn = false
+
+    -- Wrapper for dragging
+    local dragFrame = Instance.new("TextButton")
+    dragFrame.Name = "DragWrapper"
+    dragFrame.Parent = ScreenGui
+    dragFrame.Size = UDim2.new(0, 400, 0, 300)
+    dragFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+    dragFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    dragFrame.BackgroundTransparency = 1
+    dragFrame.AutoButtonColor = false
+    dragFrame.Active = true
+    dragFrame.Draggable = true
+
+    -- Main Frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Parent = dragFrame
+    mainFrame.Size = UDim2.new(0, 400, 0, 300)
+    mainFrame.Position = UDim2.new(0, 0, 0, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    mainFrame.Active = true
+
+    -- Close Button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseButton"
+    closeBtn.Parent = mainFrame
+    closeBtn.Size = UDim2.new(0, 24, 0, 24)
+    closeBtn.Position = UDim2.new(1, -30, 0, 6)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(40,40,50)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Text = "X"
+    closeBtn.TextSize = 18
+    closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,4)
+    closeBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+
+    -- Glow effect
+    local glow = Instance.new("ImageLabel")
+    glow.Name = "Glow"
+    glow.Parent = mainFrame
+    glow.BackgroundTransparency = 1
+    glow.Size = UDim2.new(1, 20, 1, 20)
+    glow.Position = UDim2.new(0, -10, 0, -10)
+    glow.Image = "rbxassetid://5028857084"
+    glow.ImageColor3 = Color3.fromRGB(0,170,255)
+    glow.ScaleType = Enum.ScaleType.Slice
+    glow.SliceCenter = Rect.new(24,24,276,276)
+    glow.ZIndex = -1
+
+    -- Rounded corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0,12)
+    corner.Parent = mainFrame
+
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Parent = mainFrame
+    title.Size = UDim2.new(1,0,0,50)
+    title.Position = UDim2.new(0,0,0,10)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBlack
+    title.Text = "HydroHub Pet Changer"
+    title.TextSize = 24
+    title.TextColor3 = Color3.fromRGB(0,255,255)
+    title.TextStrokeTransparency = 0.5
+    title.TextStrokeColor3 = Color3.fromRGB(0,100,255)
+    local titleGradient = Instance.new("UIGradient", title)
+    titleGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0,255,255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0,200,255))
+    })
+    titleGradient.Rotation = 90
+
+    -- Divider
+    local divider = Instance.new("Frame")
+    divider.Name = "Divider"
+    divider.Parent = mainFrame
+    divider.Size = UDim2.new(0.8,0,0,2)
+    divider.Position = UDim2.new(0.1,0,0,60)
+    divider.BackgroundColor3 = Color3.fromRGB(0,150,255)
+    divider.BorderSizePixel = 0
+    Instance.new("UICorner", divider).CornerRadius = UDim.new(0,5)
+
+    -- FROM Pet Input
+    local fromLabel = Instance.new("TextLabel", mainFrame)
+    fromLabel.Name = "FromLabel"
+    fromLabel.Text = "FROM PET:"
+    fromLabel.Size = UDim2.new(0.8,0,0,20)
+    fromLabel.Position = UDim2.new(0.1,0,0,80)
+    fromLabel.BackgroundTransparency = 1
+    fromLabel.Font = Enum.Font.GothamBold
+    fromLabel.TextColor3 = Color3.fromRGB(255,255,255)
+    fromLabel.TextSize = 16
+    fromLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local fromBox = Instance.new("TextBox", mainFrame)
+    fromBox.Name = "FromBox"
+    fromBox.PlaceholderText = "Enter pet name to change from..."
+    fromBox.Size = UDim2.new(0.8,0,0,40)
+    fromBox.Position = UDim2.new(0.1,0,0,100)
+    fromBox.BackgroundColor3 = Color3.fromRGB(40,40,50)
+    fromBox.TextColor3 = Color3.fromRGB(255,255,255)
+    fromBox.Font = Enum.Font.Gotham
+    fromBox.TextSize = 14
+    fromBox.ClearTextOnFocus = false
+    Instance.new("UICorner", fromBox).CornerRadius = UDim.new(0,8)
+    local fromPad = Instance.new("UIPadding", fromBox)
+    fromPad.PaddingLeft = UDim.new(0,10)
+
+    -- TO Pet Input
+    local toLabel = Instance.new("TextLabel", mainFrame)
+    toLabel.Name = "ToLabel"
+    toLabel.Text = "TO PET:"
+    toLabel.Size = UDim2.new(0.8,0,0,20)
+    toLabel.Position = UDim2.new(0.1,0,0,150)
+    toLabel.BackgroundTransparency = 1
+    toLabel.Font = Enum.Font.GothamBold
+    toLabel.TextColor3 = Color3.fromRGB(255,255,255)
+    toLabel.TextSize = 16
+    toLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local toBox = Instance.new("TextBox", mainFrame)
+    toBox.Name = "ToBox"
+    toBox.PlaceholderText = "Enter pet name to change to..."
+    toBox.Size = UDim2.new(0.8,0,0,40)
+    toBox.Position = UDim2.new(0.1,0,0,170)
+    toBox.BackgroundColor3 = Color3.fromRGB(40,40,50)
+    toBox.TextColor3 = Color3.fromRGB(255,255,255)
+    toBox.Font = Enum.Font.Gotham
+    toBox.TextSize = 14
+    toBox.ClearTextOnFocus = false
+    Instance.new("UICorner", toBox).CornerRadius = UDim.new(0,8)
+    local toPad = Instance.new("UIPadding", toBox)
+    toPad.PaddingLeft = UDim.new(0,10)
+
+    -- TRANSFORM BUTTON
+    local executeButton = Instance.new("TextButton", mainFrame)
+    executeButton.Name = "ExecuteButton"
+    executeButton.Text = "TRANSFORM PET"
+    executeButton.Size = UDim2.new(0.8,0,0,50)
+    executeButton.Position = UDim2.new(0.1,0,0,230)
+    executeButton.Font = Enum.Font.GothamBold
+    executeButton.TextSize = 18
+    executeButton.TextColor3 = Color3.fromRGB(255,255,255)
+    executeButton.BackgroundColor3 = Color3.fromRGB(0,150,255)
+    executeButton.AutoButtonColor = false
+    Instance.new("UICorner", executeButton).CornerRadius = UDim.new(0,8)
+    local btnGrad = Instance.new("UIGradient", executeButton)
+    btnGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0,170,255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0,100,255))
+    })
+    btnGrad.Rotation = 90
+
+    -- Button hover & click
+    executeButton.MouseEnter:Connect(function()
+        TweenService:Create(executeButton, TweenInfo.new(0.2), {Size = UDim2.new(0.82,0,0,52)}):Play()
+        TweenService:Create(btnGrad, TweenInfo.new(0.2), {Rotation = 180}):Play()
+    end)
+    executeButton.MouseLeave:Connect(function()
+        TweenService:Create(executeButton, TweenInfo.new(0.2), {Size = UDim2.new(0.8,0,0,50)}):Play()
+        TweenService:Create(btnGrad, TweenInfo.new(0.2), {Rotation = 90}):Play()
+    end)
+    executeButton.MouseButton1Click:Connect(function()
+        -- Animate click
+        TweenService:Create(executeButton, TweenInfo.new(0.1), {Size = UDim2.new(0.78,0,0,48)}):Play()
+        TweenService:Create(executeButton, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(0,200,255)}):Play()
+        task.wait(0.1)
+        TweenService:Create(executeButton, TweenInfo.new(0.1), {Size = UDim2.new(0.8,0,0,50)}):Play()
+        TweenService:Create(executeButton, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(0,150,255)}):Play()
+
+        local fromPet = fromBox.Text
+        local toPet = toBox.Text
+        if fromPet == "" or toPet == "" then
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "ERROR", Text = "Please fill in both pet names!", Duration = 3
+            })
+            return
+        end
+
+        if Pets[fromPet] and Pets[toPet] then
+            for i in pairs(Pets[fromPet]) do Pets[fromPet][i] = nil end
+            for k,v in pairs(Pets[toPet]) do Pets[fromPet][k] = v end
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "SUCCESS!", Text = "Transformed "..fromPet.." to "..toPet, Duration = 5
+            })
+            TweenService:Create(glow, TweenInfo.new(0.5), {ImageColor3 = Color3.fromRGB(0,255,100)}):Play()
+            task.wait(0.5)
+            TweenService:Create(glow, TweenInfo.new(0.5), {ImageColor3 = Color3.fromRGB(0,170,255)}):Play()
+        else
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "ERROR!", Text = "Invalid pet names!", Duration = 3
+            })
+        end
+    end)
+
+    -- Initial tween-in
+    mainFrame.Size = UDim2.new(0,0,0,0)
+    task.wait(0.1)
+    TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
+        Size = UDim2.new(0,400,0,300)
+    }):Play()
+end
+
+-- Create Loading Screen
+local loadingGui = Instance.new("ScreenGui")
+loadingGui.Name = "HydroHubLoading"
+loadingGui.Parent = game:GetService("CoreGui")
+loadingGui.ResetOnSpawn = false
+
+local loadingDrag = Instance.new("TextButton")
+loadingDrag.Name = "LoadingDragWrapper"
+loadingDrag.Parent = loadingGui
+loadingDrag.Size = UDim2.new(0,400,0,300)
+loadingDrag.Position = UDim2.new(0.5,-200,0.5,-150)
+loadingDrag.AnchorPoint = Vector2.new(0.5,0.5)
+loadingDrag.BackgroundTransparency = 1
+loadingDrag.AutoButtonColor = false
+loadingDrag.Active = true
+loadingDrag.Draggable = true
+
+local loadingFrame = Instance.new("Frame")
+loadingFrame.Parent = loadingDrag
+loadingFrame.Size = UDim2.new(1,0,1,0)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(25,25,30)
+Instance.new("UICorner", loadingFrame).CornerRadius = UDim.new(0,12)
+
+-- Greeting
+local loadingText = Instance.new("TextLabel", loadingFrame)
+loadingText.Size = UDim2.new(1,-20,0,60)
+loadingText.Position = UDim2.new(0,10,0,10)
+loadingText.BackgroundTransparency = 1
+loadingText.Font = Enum.Font.GothamBlack
+loadingText.TextSize = 24
+loadingText.TextColor3 = Color3.fromRGB(0,255,255)
+loadingText.TextStrokeTransparency = 0.5
+loadingText.TextStrokeColor3 = Color3.fromRGB(0,100,255)
+loadingText.TextWrapped = true
+loadingText.TextYAlignment = Enum.TextYAlignment.Top
+loadingText.Text = "Hello " .. Players.LocalPlayer.Name .. ",\nThe script is loading..."
+
+-- Countdown
+local countdownLabel = Instance.new("TextLabel", loadingFrame)
+countdownLabel.Size = UDim2.new(1,-20,0,30)
+countdownLabel.Position = UDim2.new(0,10,0,80)
+countdownLabel.BackgroundTransparency = 1
+countdownLabel.Font = Enum.Font.GothamBold
+countdownLabel.TextSize = 20
+countdownLabel.TextColor3 = Color3.fromRGB(255,255,255)
+countdownLabel.Text = "Time remaining: " .. countdownStart .. "s"
+
+-- Bar
+local barBG = Instance.new("Frame", loadingFrame)
+barBG.Size = UDim2.new(0.8,0,0,10)
+barBG.Position = UDim2.new(0.1,0,0.7,0)
+barBG.BackgroundColor3 = Color3.fromRGB(40,40,50)
+Instance.new("UICorner", barBG).CornerRadius = UDim.new(0,8)
+
+local barFill = Instance.new("Frame", barBG)
+barFill.Size = UDim2.new(0,0,1,0)
+barFill.BackgroundColor3 = Color3.fromRGB(0,150,255)
+Instance.new("UICorner", barFill).CornerRadius = UDim.new(0,8)
+
+-- Animate bar
+local fillTween = TweenService:Create(barFill, TweenInfo.new(realLoadingTime, Enum.EasingStyle.Linear), {
+    Size = UDim2.new(1,0,1,0)
+})
+fillTween:Play()
+
+-- Countdown
+spawn(function()
+    for i = countdownStart, 0, -1 do
+        countdownLabel.Text = "Time remaining: " .. i .. "s"
+        if i > 0 then task.wait(countdownInterval) end
+    end
+end)
+
+-- When done:
+fillTween.Completed:Connect(function()
+    loadingGui:Destroy()
+    showMainGUI()
+end)
